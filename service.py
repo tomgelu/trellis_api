@@ -4,9 +4,11 @@ from process import process_image
 from initialize import initialize_models
 import uuid
 import logging
-
+from flask_cors import CORS  # Add this import
 
 app = Flask(__name__)
+CORS(app)  # Enable CORS for all routes
+
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 
@@ -37,27 +39,43 @@ def initialize():
 @app.route('/process', methods=['POST'])
 def process():
     app.logger.info("Received request")
-    if 'image' not in request.files:
+    
+    # Check if we received a file or a path
+    if 'image' in request.files:
+        file = request.files['image']
+        app.logger.info(f"Received file: {file.filename}")
+        
+        if file.filename == '':
+            app.logger.error("Empty filename")
+            return jsonify({'error': 'No selected file'}), 400
+            
+        # Create unique ID for this request
+        request_id = str(uuid.uuid4())
+        request_output_dir = os.path.join(OUTPUT_DIR, request_id)
+        os.makedirs(request_output_dir, exist_ok=True)
+        app.logger.info(f"Created output directory: {request_output_dir}")
+        
+        # Save uploaded file
+        input_path = os.path.join(INPUT_DIR, f"{request_id}.webp")
+        app.logger.info(f"Saving file to: {input_path}")
+        file.save(input_path)
+        
+    elif 'image' in request.form:
+        # Handle the case where we receive a path instead of a file
+        input_path = request.form['image']
+        app.logger.info(f"Received image path: {input_path}")
+        
+        if not os.path.exists(input_path):
+            app.logger.error(f"File not found: {input_path}")
+            return jsonify({'error': 'File not found'}), 400
+            
+        request_id = str(uuid.uuid4())
+        request_output_dir = os.path.join(OUTPUT_DIR, request_id)
+        os.makedirs(request_output_dir, exist_ok=True)
+        
+    else:
         app.logger.error("No image in request")
         return jsonify({'error': 'No image provided'}), 400
-    
-    file = request.files['image']
-    app.logger.info(f"Received file: {file.filename}")
-    
-    if file.filename == '':
-        app.logger.error("Empty filename")
-        return jsonify({'error': 'No selected file'}), 400
-    
-    # Create unique ID for this request
-    request_id = str(uuid.uuid4())
-    request_output_dir = os.path.join(OUTPUT_DIR, request_id)
-    os.makedirs(request_output_dir, exist_ok=True)
-    app.logger.info(f"Created output directory: {request_output_dir}")
-    
-    # Save uploaded file
-    input_path = os.path.join(INPUT_DIR, f"{request_id}.webp")
-    app.logger.info(f"Saving file to: {input_path}")
-    file.save(input_path)
     
     try:
         app.logger.info("Starting image processing")
@@ -75,8 +93,8 @@ def process():
         app.logger.error(f"Error during processing: {str(e)}", exc_info=True)
         return jsonify({'error': str(e)}), 500
     finally:
-        # Clean up input file
-        if os.path.exists(input_path):
+        # Only clean up the input file if we created it
+        if 'file' in locals() and os.path.exists(input_path):
             os.remove(input_path)
             app.logger.info(f"Cleaned up input file: {input_path}")
             
