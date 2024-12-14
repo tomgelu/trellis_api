@@ -4,10 +4,8 @@ from process import process_image
 from initialize import initialize_models
 import uuid
 import logging
-from flask_cors import CORS  # Add this import
 
 app = Flask(__name__)
-CORS(app)  # Enable CORS for all routes
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
