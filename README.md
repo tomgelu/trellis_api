@@ -17,6 +17,11 @@ A RESTful API for Microsoft's [TRELLIS](https://github.com/microsoft/TRELLIS), e
 - Docker (optional, for containerized deployment)
 - Pipenv or pip for dependency management
 
+### Tested Environment
+
+- Operating System: Ubuntu 22.04.5 LTS (WSL2)
+- Python Version: 3.10.12
+
 ### Installation
 
 1. Clone the repository:
