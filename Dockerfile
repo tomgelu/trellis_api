@@ -75,6 +75,8 @@ RUN pip install spconv-cu118
 # Install demo dependencies
 RUN pip install gradio==4.44.1 gradio_litmodel3d==0.0.1
 
+RUN pip install flask-cors
+
 # Set working directory
 WORKDIR /workspace/TRELLIS
 

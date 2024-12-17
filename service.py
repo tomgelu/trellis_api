@@ -1,4 +1,5 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
+from flask_cors import CORS, cross_origin
 import os
 from process import process_image
 from initialize import initialize_models
@@ -6,6 +7,7 @@ import uuid
 import logging
 
 app = Flask(__name__)
+CORS(app)
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -13,7 +15,14 @@ logging.basicConfig(level=logging.INFO)
 INPUT_DIR = "/workspace/TRELLIS/input"
 OUTPUT_DIR = "/workspace/TRELLIS/output"
 
+@app.route('/output/<request_id>/<filename>')
+@cross_origin()
+def serve_file(request_id, filename):
+    """Serve files from the output directory"""
+    return send_from_directory(os.path.join(OUTPUT_DIR, request_id), filename)
+
 @app.route('/initialize', methods=['POST'])
+@cross_origin()
 def initialize():
     app.logger.info("Received request")   
     
@@ -35,6 +44,7 @@ def initialize():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/process', methods=['POST'])
+@cross_origin()
 def process():
     app.logger.info("Received request")
     
@@ -83,7 +93,8 @@ def process():
         result = {
             'status': 'success',
             'request_id': request_id,
-            'output_files': output_files
+            'output_files': output_files,
+            'base_url': f'http://localhost:5000/output/{request_id}'  # Add base URL for files
         }
         app.logger.info(f"Processing complete: {result}")
         return jsonify(result)
