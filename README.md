@@ -22,24 +22,6 @@ A RESTful API for Microsoft's [TRELLIS](https://github.com/microsoft/TRELLIS), e
 - Operating System: Ubuntu 22.04.5 LTS (WSL2)
 - Python Version: 3.10.12
 
-### Installation
-
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/parataaito/trellis_api.git
-   cd trellis_api
-   ```
-
-2. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-3. Run the development server:
-   ```bash
-   python service.py
-   ```
-
 ### Docker Deployment
 
 #### Start the Service
@@ -64,6 +46,8 @@ A RESTful API for Microsoft's [TRELLIS](https://github.com/microsoft/TRELLIS), e
 The API will be available at `http://localhost:5000`.
 
 #### Start the Client
+
+Open a new bash
 
 1. Initialize the models (download the weights):
    ```bash
