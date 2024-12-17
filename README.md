@@ -43,6 +43,17 @@ A RESTful API for Microsoft's [TRELLIS](https://github.com/microsoft/TRELLIS), e
     docker logs -f trellis-service-client
    ```
 
+   If you prefer to avoid building the Docker image, you can use the pre-built image from Docker Hub:
+      ```bash
+      docker pull plenost/trellis-processor
+
+      docker run -d --gpus all -p 5000:5000 \
+         -v "/mnt/d/Code/trellis_service/output:/workspace/TRELLIS/output:rw" \
+         --name trellis-service-client plenost/trellis-processor
+
+      docker logs -f trellis-service-client
+   ```
+
 The API will be available at `http://localhost:5000`.
 
 #### Start the Client
