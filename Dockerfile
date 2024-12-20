@@ -65,6 +65,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY --from=builder /usr/bin/python* /usr/bin/
 COPY --from=builder /usr/local/lib/python3.10 /usr/local/lib/python3.10
 COPY --from=builder /usr/lib/x86_64-linux-gnu /usr/lib/x86_64-linux-gnu
+COPY --from=builder /usr/bin/ninja /usr/bin/ninja
 COPY --from=builder /workspace/TRELLIS /workspace/TRELLIS
 
 # Set working directory
