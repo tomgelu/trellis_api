@@ -12,7 +12,7 @@ ENV FORCE_CUDA=1
 # Install system dependencies in a single layer and clean up immediately
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python3.10 python3.10-dev python3-pip \
-    wget git ninja-build build-essential && \
+    wget git ninja-build build-essential libexpat1 && \
     rm -rf /var/lib/apt/lists/*
 
 # Set Python 3.10 as default
@@ -26,7 +26,7 @@ RUN python -m pip install --no-cache-dir --upgrade pip setuptools wheel
 WORKDIR /workspace
 RUN git clone --recurse-submodules https://github.com/microsoft/TRELLIS.git
 
-# Install Python dependencies in one layer, and clean caches to save space
+# Install Python dependencies in one layer
 RUN python -m pip install --no-cache-dir \
     torch==2.4.0 torchvision==0.19.0 --index-url https://download.pytorch.org/whl/cu118 && \
     python -m pip install --no-cache-dir \
@@ -42,31 +42,29 @@ RUN python -m pip install --no-cache-dir \
     kaolin -f https://nvidia-kaolin.s3.us-east-2.amazonaws.com/torch-2.4.0_cu121.html && \
     python -m pip install --no-cache-dir spconv-cu118 && \
     python -m pip install --no-cache-dir gradio==4.44.1 gradio_litmodel3d==0.0.1 && \
-    python -m pip install --no-cache-dir flask-cors flask requests && \
-    rm -rf /root/.cache/*
+    python -m pip install --no-cache-dir flask-cors flask requests
 
-# Install extensions in one layer, and clean up immediately
+# Install extensions
 RUN mkdir -p /tmp/extensions && \
     git clone https://github.com/NVlabs/nvdiffrast.git /tmp/extensions/nvdiffrast && \
     python -m pip install --no-cache-dir /tmp/extensions/nvdiffrast && \
     git clone --recurse-submodules https://github.com/JeffreyXiang/diffoctreerast.git /tmp/extensions/diffoctreerast && \
     python -m pip install --no-cache-dir /tmp/extensions/diffoctreerast && \
     git clone https://github.com/autonomousvision/mip-splatting.git /tmp/extensions/mip-splatting && \
-    python -m pip install --no-cache-dir /tmp/extensions/mip-splatting/submodules/diff-gaussian-rasterization/ && \
-    rm -rf /tmp/extensions && \
-    rm -rf /root/.cache/*
+    python -m pip install --no-cache-dir /tmp/extensions/mip-splatting/submodules/diff-gaussian-rasterization/
 
 # Runtime stage
 FROM nvidia/cuda:11.8.0-cudnn8-runtime-ubuntu22.04
 
 # Install runtime dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    libexpat1 && \
+    libexpat1 libpython3.10 libstdc++6 && \
     rm -rf /var/lib/apt/lists/*
 
-# Copy Python and runtime files from builder
+# Copy Python and libraries from the builder stage
 COPY --from=builder /usr/bin/python* /usr/bin/
 COPY --from=builder /usr/local/lib/python3.10 /usr/local/lib/python3.10
+COPY --from=builder /usr/lib/x86_64-linux-gnu /usr/lib/x86_64-linux-gnu
 COPY --from=builder /workspace/TRELLIS /workspace/TRELLIS
 
 # Set working directory
