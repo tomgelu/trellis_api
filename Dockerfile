@@ -74,10 +74,11 @@ WORKDIR /workspace/TRELLIS
 RUN mkdir -p /workspace/TRELLIS/input /workspace/TRELLIS/output
 
 # Copy Python scripts
+COPY job_manager.py /workspace/TRELLIS/job_manager.py
 COPY service.py /workspace/TRELLIS/service.py
 COPY process.py /workspace/TRELLIS/process.py
 COPY initialize.py /workspace/TRELLIS/initialize.py
-RUN chmod +x /workspace/TRELLIS/service.py /workspace/TRELLIS/process.py /workspace/TRELLIS/initialize.py
+RUN chmod +x /workspace/TRELLIS/service.py /workspace/TRELLIS/process.py /workspace/TRELLIS/initialize.py /workspace/TRELLIS/job_manager.py
 
 # Expose the port
 EXPOSE 5000
