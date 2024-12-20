@@ -59,6 +59,11 @@ RUN mkdir -p /tmp/extensions && \
 # Runtime stage
 FROM nvidia/cuda:11.8.0-cudnn8-runtime-ubuntu22.04
 
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libexpat1 && \
+    rm -rf /var/lib/apt/lists/*
+
 # Copy Python and runtime files from builder
 COPY --from=builder /usr/bin/python* /usr/bin/
 COPY --from=builder /usr/local/lib/python3.10 /usr/local/lib/python3.10
