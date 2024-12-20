@@ -81,6 +81,8 @@ COPY process.py /workspace/TRELLIS/process.py
 COPY initialize.py /workspace/TRELLIS/initialize.py
 RUN chmod +x /workspace/TRELLIS/service.py /workspace/TRELLIS/process.py /workspace/TRELLIS/initialize.py /workspace/TRELLIS/job_manager.py
 
+RUN python -c "from trellis.pipelines import TrellisImageTo3DPipeline; TrellisImageTo3DPipeline.from_pretrained('JeffreyXiang/TRELLIS-image-large')"
+
 # Expose the port
 EXPOSE 5000
 

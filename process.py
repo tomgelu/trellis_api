@@ -16,7 +16,14 @@ def initialize_models():
     """Initialize TRELLIS pipeline and store it globally"""
     global _pipeline
     print("Initialize TRELLIS pipeline...")
-    _pipeline = TrellisImageTo3DPipeline.from_pretrained("JeffreyXiang/TRELLIS-image-large")
+    try:
+        _pipeline = TrellisImageTo3DPipeline.from_pretrained(
+            "JeffreyXiang/TRELLIS-image-large",
+            local_files_only=True  # Try to load only from local files first
+        )
+    except Exception as e:
+        print("Model not found locally, downloading from hub...")
+        _pipeline = TrellisImageTo3DPipeline.from_pretrained("JeffreyXiang/TRELLIS-image-large")
     _pipeline.cuda()
     print("TRELLIS Pipeline loaded successfully")
 
@@ -26,8 +33,7 @@ def process_image(input_path, output_dir):
     print(f"\nStarting TRELLIS processing pipeline...")
     
     if _pipeline is None:
-        raise RuntimeError("Pipeline not initialized. Call initialize_models() first.")
-
+        _pipeline = TrellisImageTo3DPipeline.from_pretrained("JeffreyXiang/TRELLIS-image-large", local_files_only=True)
     # Create output directory if it doesn't exist
     os.makedirs(output_dir, exist_ok=True)
 
