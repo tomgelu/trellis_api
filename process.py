@@ -77,12 +77,6 @@ def process_image(input_path, output_dir):
         'mesh': "output_mesh.mp4",
         'glb': "output.glb"
     }
-    finally:
-        # Force garbage collection after processing
-        import gc
-        gc.collect()
-        if torch.cuda.is_available():
-            torch.cuda.empty_cache()
 
 def main():
     parser = argparse.ArgumentParser(description='Process image with TRELLIS')
