@@ -7,27 +7,32 @@ from PIL import Image
 import time
 from trellis.pipelines import TrellisImageTo3DPipeline
 from trellis.utils import render_utils, postprocessing_utils
+import torch
+
+# Add global variable to store the pipeline
+_pipeline = None
 
 def initialize_models():
+    """Initialize TRELLIS pipeline and store it globally"""
+    global _pipeline
     print("Initialize TRELLIS pipeline...")
-    pipeline = TrellisImageTo3DPipeline.from_pretrained("JeffreyXiang/TRELLIS-image-large")
+    _pipeline = TrellisImageTo3DPipeline.from_pretrained("JeffreyXiang/TRELLIS-image-large")
+    _pipeline.cuda()
     print("TRELLIS Pipeline loaded successfully")
-    
+
 def process_image(input_path, output_dir):
     """Process a single image with TRELLIS"""
+    global _pipeline
     print(f"\nStarting TRELLIS processing pipeline...")
     
+    if _pipeline is None:
+        raise RuntimeError("Pipeline not initialized. Call initialize_models() first.")
+
     # Create output directory if it doesn't exist
     os.makedirs(output_dir, exist_ok=True)
 
     # Set SPCONV_ALGO
     os.environ['SPCONV_ALGO'] = 'native'
-
-    print("Loading TRELLIS pipeline...")
-    # Load the pipeline
-    pipeline = TrellisImageTo3DPipeline.from_pretrained("JeffreyXiang/TRELLIS-image-large")
-    pipeline.cuda()
-    print("Pipeline loaded and moved to CUDA successfully")
 
     # Load the image
     print(f"Loading input image: {input_path}")
@@ -37,7 +42,7 @@ def process_image(input_path, output_dir):
     # Run the pipeline
     print("\nRunning TRELLIS pipeline (this may take several minutes)...")
     start_time = time.time()
-    outputs = pipeline.run(image, seed=1)
+    outputs = _pipeline.run(image, seed=1)
     processing_time = time.time() - start_time
     print(f"Pipeline processing completed in {processing_time:.2f} seconds")
 
@@ -72,6 +77,12 @@ def process_image(input_path, output_dir):
         'mesh': "output_mesh.mp4",
         'glb': "output.glb"
     }
+    finally:
+        # Force garbage collection after processing
+        import gc
+        gc.collect()
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
 
 def main():
     parser = argparse.ArgumentParser(description='Process image with TRELLIS')

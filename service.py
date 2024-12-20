@@ -8,6 +8,8 @@ import logging
 import threading
 import time
 from job_manager import JobManager, JobStatus
+from urllib.parse import urljoin
+import atexit
 
 app = Flask(__name__)
 CORS(app)
@@ -15,11 +17,16 @@ CORS(app)
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 
-INPUT_DIR = "/workspace/TRELLIS/input"
-OUTPUT_DIR = "/workspace/TRELLIS/output"
+INPUT_DIR = os.getenv('TRELLIS_INPUT_DIR', "/workspace/TRELLIS/input")
+OUTPUT_DIR = os.getenv('TRELLIS_OUTPUT_DIR', "/workspace/TRELLIS/output")
+BASE_URL = os.getenv('TRELLIS_BASE_URL', 'http://localhost:5000')
 
 # Initialize job manager
 job_manager = JobManager()
+
+# Add at the top with other globals
+initialization_lock = threading.Lock()
+is_initialized = False
 
 @app.route('/output/<request_id>/<filename>')
 @cross_origin()
@@ -30,24 +37,33 @@ def serve_file(request_id, filename):
 @app.route('/initialize', methods=['POST'])
 @cross_origin()
 def initialize():
-    app.logger.info("Received request")   
+    global is_initialized
+    app.logger.info("Received initialization request")   
     
     request_id = str(uuid.uuid4())
     
-    try:
-        app.logger.info("Starting initialization process")
-        # Process the image
-        initialize_models()
+    with initialization_lock:
+        if is_initialized:
+            return jsonify({
+                'status': 'success',
+                'message': 'Already initialized',
+                'request_id': request_id
+            })
+            
+        try:
+            app.logger.info("Starting initialization process")
+            initialize_models()
+            is_initialized = True
 
-        result = {
-            'status': 'success',
-            'request_id': request_id,
-        }
-        app.logger.info(f"Initialization complete: {result}")
-        return jsonify(result)
-    except Exception as e:
-        app.logger.error(f"Error during initialization: {str(e)}", exc_info=True)
-        return jsonify({'error': str(e)}), 500
+            result = {
+                'status': 'success',
+                'request_id': request_id,
+            }
+            app.logger.info(f"Initialization complete: {result}")
+            return jsonify(result)
+        except Exception as e:
+            app.logger.error(f"Error during initialization: {str(e)}", exc_info=True)
+            return jsonify({'error': str(e)}), 500
 
 @app.route('/status/<request_id>', methods=['GET'])
 @cross_origin()
@@ -71,7 +87,14 @@ def get_status(request_id):
 @app.route('/process', methods=['POST'])
 @cross_origin()
 def process():
-    app.logger.info("Received request")
+    global is_initialized
+    app.logger.info("Received process request")
+    
+    if not is_initialized:
+        return jsonify({
+            'error': 'Service not initialized. Please call /initialize first'
+        }), 400
+        
     request_id = str(uuid.uuid4())
     job = job_manager.create_job(request_id)
     
@@ -112,7 +135,7 @@ def run_processing(request_id, input_path, output_dir):
         job.status = JobStatus.COMPLETED
         job.result = {
             'output_files': result,
-            'base_url': f'http://localhost:5000/output/{request_id}'
+            'base_url': urljoin(BASE_URL, f'/output/{request_id}')
         }
     except Exception as e:
         job.status = JobStatus.FAILED
@@ -121,6 +144,25 @@ def run_processing(request_id, input_path, output_dir):
     finally:
         if os.path.exists(input_path):
             os.remove(input_path)
+
+def cleanup():
+    """Cleanup resources on shutdown"""
+    app.logger.info("Cleaning up resources...")
+    # Add any cleanup needed for the pipeline
+    global _pipeline
+    if _pipeline:
+        del _pipeline
+    
+atexit.register(cleanup)
+
+@app.route('/health', methods=['GET'])
+@cross_origin()
+def health_check():
+    return jsonify({
+        'status': 'healthy',
+        'initialized': is_initialized,
+        'active_jobs': len(job_manager.jobs)
+    })
 
 if __name__ == '__main__':
     os.makedirs(INPUT_DIR, exist_ok=True)
